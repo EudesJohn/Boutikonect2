@@ -1,0 +1,495 @@
+/* ============================================================
+   ReceiptA4.css
+   Pure CSS for premium A4 portrait payment receipt.
+   Inspired by Stripe & Modern Fintech Designs.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Screen Preview Container Scroll Wrapper */
+.receipt-a4-preview-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  padding: 20px 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent;
+}
+
+/* Main A4 Document styling */
+.receipt-a4-container {
+  width: 794px;
+  height: 1123px;
+  min-width: 794px;
+  min-height: 1123px;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  padding: 56px 56px 45px 56px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1e293b;
+  position: relative;
+  overflow: hidden;
+  background-image: 
+    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.025) 0%, transparent 40%),
+    radial-gradient(circle at 0% 100%, rgba(245, 158, 11, 0.015) 0%, transparent 40%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Decorative top bar border */
+.receipt-a4-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #4f46e5 0%, #6366f1 50%, #f59e0b 100%);
+}
+
+/* ────────────────────────────────────────────────────────────
+   HEADER SECTION
+   ──────────────────────────────────────────────────────────── */
+.receipt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 20px;
+  margin-bottom: 24px;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.receipt-main-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+.brand-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.brand-dot {
+  color: #f59e0b;
+}
+
+.brand-country {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  margin-left: 2px;
+}
+
+.header-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.document-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.document-ref {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  color: #4f46e5;
+  background-color: #f5f3ff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  align-self: flex-end;
+}
+
+.header-divider {
+  height: 1px;
+  background-color: #f1f5f9;
+  width: 100%;
+  margin-bottom: 22px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   STATUS PILL
+   ──────────────────────────────────────────────────────────── */
+.status-pill-container {
+  margin-bottom: 22px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ecfdf5;
+  border: 1px solid #d1fae5;
+  color: #065f46;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background-color: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  animation: status-pulse 2s infinite ease-in-out;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ────────────────────────────────────────────────────────────
+   PRODUCT PREVIEW BOX
+   ──────────────────────────────────────────────────────────── */
+.product-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  margin-bottom: 26px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+}
+
+.product-image-container {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #f1f5f9;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-fallback-img {
+  font-size: 28px;
+  color: #94a3b8;
+}
+
+.product-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.product-plan {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.product-plan-highlight {
+  font-weight: 700;
+  color: #4f46e5;
+  background-color: #eef2ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  display: inline-block;
+}
+
+.product-duration {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ────────────────────────────────────────────────────────────
+   INFORMATION GRID (2 COLUMNS)
+   ──────────────────────────────────────────────────────────── */
+.info-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 30px;
+}
+
+.info-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.info-subtext {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   BILLING DETAILS BOX
+   ──────────────────────────────────────────────────────────── */
+.billing-details-box {
+  background-color: #fafbfd;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 38px;
+}
+
+.billing-box-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.billing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.billing-row:not(:last-child) {
+  border-bottom: 1px solid #f8fafc;
+}
+
+.billing-row-label {
+  font-weight: 400;
+}
+
+.billing-row-value {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.billing-row-value.monospace {
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.billing-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.billing-total-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.billing-total-amount {
+  font-size: 22px;
+  font-weight: 900;
+  color: #4f46e5;
+  letter-spacing: -0.02em;
+}
+
+/* ────────────────────────────────────────────────────────────
+   FOOTER SECTION
+   ──────────────────────────────────────────────────────────── */
+.receipt-footer {
+  margin-top: auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-code-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 22px;
+  gap: 6px;
+}
+
+.qr-code-img {
+  width: 100px;
+  height: 100px;
+  padding: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: #ffffff;
+}
+
+.qr-verified-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer-divider {
+  border: none;
+  border-top: 1px dashed #e2e8f0;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.footer-legal-text {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 4px 0;
+  max-width: 90%;
+}
+
+.footer-contact-text {
+  font-size: 10px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.security-badge-container {
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ecfdf5;
+  border: 1px solid #d1fae5;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #065f46;
+  letter-spacing: 0.5px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   PRINT DESIGN RULES
+   ──────────────────────────────────────────────────────────── */
+@media print {
+  /* Supprimer les marges par défaut et configurer le format A4 */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* Cacher TOUTES les interfaces de l'application */
+  body {
+    background-color: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  /* Afficher et positionner UNIQUEMENT le composant A4 */
+  .receipt-a4-container,
+  .receipt-a4-container * {
+    visibility: visible !important;
+  }
+
+  .receipt-a4-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 15mm !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background-color: #ffffff !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Assurer que la ligne de décoration haute s'imprime */
+  .receipt-a4-container::before {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    height: 6px !important;
+  }
+}
