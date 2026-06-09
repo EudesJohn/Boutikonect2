@@ -108,10 +108,14 @@ const Header = () => {
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo */}
             <Link to="/" className="inline-flex items-center gap-2.5 shrink-0">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
-                <Store className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg overflow-hidden flex-shrink-0 shadow-lg shadow-amber-500/25">
+                <img
+                  src="/logo.png"
+                  alt="Boutikonect"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <span className="text-xl font-bold tracking-tight">
+              <span className="text-xl font-bold tracking-tight max-sm:hidden">
                 <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
                   Bouti
                 </span>
