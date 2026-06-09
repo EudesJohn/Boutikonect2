@@ -19,6 +19,7 @@ import Profile from './pages/Profile'
 import UserDashboard from './pages/UserDashboard'
 import Favorites from './pages/Favorites'
 import Messages from './pages/Messages'
+import NotificationsPage from './pages/Notifications'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Checkout from './pages/Checkout'
@@ -101,6 +102,7 @@ function App() {
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
         {/* ======================== Pages vendeur (protégées) ======================== */}
         <Route path="/seller/dashboard" element={<ProtectedRoute requireSeller><SellerDashboard /></ProtectedRoute>} />

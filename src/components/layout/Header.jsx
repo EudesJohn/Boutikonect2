@@ -19,6 +19,7 @@ import {
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import NotificationBadge from '@/components/ui/Toast';
+import NotificationDropdown from '@/components/ui/NotificationDropdown';
 
 const navLinks = [
   { to: '/', label: 'Accueil' },
@@ -157,6 +158,13 @@ const Header = () => {
                 />
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
               </form>
+
+              {/* Notifications — only when logged in */}
+              {user && (
+                <div className="relative">
+                  <NotificationDropdown />
+                </div>
+              )}
 
               {/* Cart */}
               <Link

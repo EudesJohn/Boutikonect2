@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { LocationProvider } from './context/LocationContext'
+import { NotificationProvider } from './context/NotificationContext'
 import App from './App.jsx'
 import SplashScreen from './components/ui/SplashScreen'
 import './index.css'
@@ -16,8 +17,9 @@ function AppContent() {
     <SplashScreen ready={!authLoading} minDuration={2000}>
       <CartProvider>
         <LocationProvider>
-          <App />
-          <Toaster
+          <NotificationProvider>
+            <App />
+            <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
@@ -35,6 +37,7 @@ function AppContent() {
               },
             }}
           />
+          </NotificationProvider>
         </LocationProvider>
       </CartProvider>
     </SplashScreen>

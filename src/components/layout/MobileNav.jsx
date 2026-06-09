@@ -1,19 +1,21 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Package, Wrench, ShoppingCart, MessageCircle } from 'lucide-react';
+import { Home, Package, Wrench, ShoppingCart, MessageCircle, Bell } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useNotifications } from '@/context/NotificationContext';
 import NotificationBadge from '@/components/ui/Toast';
 
 const navItems = [
   { to: '/', icon: Home, label: 'Accueil' },
   { to: '/products', icon: Package, label: 'Produits' },
   { to: '/services', icon: Wrench, label: 'Services' },
-  { to: '/messages', icon: MessageCircle, label: 'Messages' },
+  { to: '/notifications', icon: Bell, label: 'Alertes' },
   { to: '/cart', icon: ShoppingCart, label: 'Panier', hasBadge: true },
 ];
 
 const MobileNav = () => {
   const location = useLocation();
   const { cartCount } = useCart();
+  const { unreadCount } = useNotifications();
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
@@ -27,6 +29,7 @@ const MobileNav = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.to);
+            const count = item.to === '/cart' ? cartCount : item.to === '/notifications' ? unreadCount : 0;
 
             return (
               <Link
@@ -44,8 +47,8 @@ const MobileNav = () => {
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  {item.hasBadge && cartCount > 0 && (
-                    <NotificationBadge count={cartCount} />
+                  {count > 0 && (
+                    <NotificationBadge count={count} />
                   )}
                 </div>
                 <span className="text-[10px] font-medium leading-tight">
