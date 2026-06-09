@@ -4,6 +4,7 @@ import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
 import Footer from '@/components/layout/Footer';
 import VirtualAssistant from '@/components/VirtualAssistant';
+import InstallPrompt from '@/components/InstallPrompt';
 
 const Layout = () => {
   return (
@@ -18,6 +19,8 @@ const Layout = () => {
       <VirtualAssistant />
 
       <Footer />
+
+      <InstallPrompt />
 
       <MobileNav />
 
