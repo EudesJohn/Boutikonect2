@@ -66,13 +66,15 @@ export default function SplashScreen({ onFinish }) {
             className="relative z-10 flex flex-col items-center"
           >
             {LOGO_URL ? (
-              <img
-                src={LOGO_URL}
-                alt="Boutikonect"
-                className="w-24 h-24 md:w-28 md:h-28 object-contain"
-              />
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gray-900 border-2 border-amber-500/30 flex items-center justify-center overflow-hidden shadow-glow-amber">
+                <img
+                  src={LOGO_URL}
+                  alt="Boutikonect"
+                  className="w-full h-full object-cover"
+                />
+              </div>
             ) : (
-              <div className="w-24 h-24 md:w-28 md:h-28 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-glow-amber">
+              <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-glow-amber">
                 <span className="text-4xl md:text-5xl font-bold text-white">B</span>
               </div>
             )}
