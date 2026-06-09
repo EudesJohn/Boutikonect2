@@ -1586,7 +1586,7 @@ export async function sendMessage(conversationId, senderId, content, attachments
     throw new Error('sendMessage: conversationId, senderId, and content are required');
   }
 
-  // Insert the message
+  // 1. Insert the message
   const { data: message, error: msgError } = await supabase
     .from('messages')
     .insert({
@@ -1599,54 +1599,55 @@ export async function sendMessage(conversationId, senderId, content, attachments
     .select()
     .single();
 
-  handleError(msgError, 'sendMessage');
+  if (msgError) {
+    console.error('[DB] sendMessage insert failed:', msgError.message, msgError.details, msgError.hint);
+    throw new Error("Impossible d'envoyer le message: " + msgError.message);
+  }
 
-  // Update conversation's last message info
-  const { data: conversation } = await supabase
+  // 2. Update conversation metadata (fire & forget — ne pas bloquer l'envoi)
+  supabase
     .from('conversations')
-    .select('buyer_id, seller_id')
-    .eq('id', conversationId)
-    .single();
-
-  if (conversation) {
-    const isBuyer = senderId === conversation.buyer_id;
-    const updates = {
+    .update({
       last_message_at: new Date().toISOString(),
       last_message_preview: content.substring(0, 100),
       updated_at: new Date().toISOString(),
-    };
+    })
+    .eq('id', conversationId)
+    .then(({ error: updateErr }) => {
+      if (updateErr) console.warn('[DB] Failed to update conversation:', updateErr.message);
+    });
 
-    // Increment unread count for the recipient
-    await supabase
-      .from('conversations')
-      .update(updates)
-      .eq('id', conversationId);
-
-    // Update unread count for recipient
-    const unreadField = isBuyer ? 'seller_unread_count' : 'buyer_unread_count';
-    try {
-      await supabase.rpc('increment_conversation_unread', {
+  // 3. Increment unread count (fire & forget)
+  supabase
+    .from('conversations')
+    .select('buyer_id, seller_id')
+    .eq('id', conversationId)
+    .single()
+    .then(({ data: conv, error: convErr }) => {
+      if (convErr || !conv) return;
+      const isBuyer = senderId === conv.buyer_id;
+      const unreadField = isBuyer ? 'seller_unread_count' : 'buyer_unread_count';
+      supabase.rpc('increment_conversation_unread', {
         p_conversation_id: conversationId,
         p_column: unreadField,
+      }).then(({ error: rpcErr }) => {
+        if (rpcErr) {
+          supabase
+            .from('conversations')
+            .select(unreadField)
+            .eq('id', conversationId)
+            .single()
+            .then(({ data: c }) => {
+              const current = c?.[unreadField] || 0;
+              supabase
+                .from('conversations')
+                .update({ [unreadField]: current + 1 })
+                .eq('id', conversationId)
+                .then();
+            });
+        }
       });
-    } catch {
-      // Fallback: read current count and increment
-      try {
-        const { data: conv } = await supabase
-          .from('conversations')
-          .select(unreadField)
-          .eq('id', conversationId)
-          .single();
-        const current = conv?.[unreadField] || 0;
-        await supabase
-          .from('conversations')
-          .update({ [unreadField]: current + 1 })
-          .eq('id', conversationId);
-      } catch (fallbackErr) {
-        console.warn('Failed to increment unread count:', fallbackErr);
-      }
-    }
-  }
+    });
 
   return message;
 }
