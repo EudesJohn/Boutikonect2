@@ -1623,33 +1623,28 @@ export async function sendMessage(conversationId, senderId, content, attachments
       .eq('id', conversationId);
 
     // Update unread count for recipient
-    if (isBuyer) {
+    const unreadField = isBuyer ? 'seller_unread_count' : 'buyer_unread_count';
+    try {
       await supabase.rpc('increment_conversation_unread', {
         p_conversation_id: conversationId,
-        p_column: 'seller_unread_count',
-      }).catch(() => {
-        // Fallback: update directly
-        supabase
-          .from('conversations')
-          .update({ seller_unread_count: supabase.raw('COALESCE(seller_unread_count, 0) + 1') })
-          .eq('id', conversationId)
-          .then(({ error: fallbackErr }) => {
-            if (fallbackErr) console.warn('Failed to increment seller_unread_count:', fallbackErr.message);
-          });
+        p_column: unreadField,
       });
-    } else {
-      await supabase.rpc('increment_conversation_unread', {
-        p_conversation_id: conversationId,
-        p_column: 'buyer_unread_count',
-      }).catch(() => {
-        supabase
+    } catch {
+      // Fallback: read current count and increment
+      try {
+        const { data: conv } = await supabase
           .from('conversations')
-          .update({ buyer_unread_count: supabase.raw('COALESCE(buyer_unread_count, 0) + 1') })
+          .select(unreadField)
           .eq('id', conversationId)
-          .then(({ error: fallbackErr }) => {
-            if (fallbackErr) console.warn('Failed to increment buyer_unread_count:', fallbackErr.message);
-          });
-      });
+          .single();
+        const current = conv?.[unreadField] || 0;
+        await supabase
+          .from('conversations')
+          .update({ [unreadField]: current + 1 })
+          .eq('id', conversationId);
+      } catch (fallbackErr) {
+        console.warn('Failed to increment unread count:', fallbackErr);
+      }
     }
   }
 
