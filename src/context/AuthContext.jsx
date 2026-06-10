@@ -136,11 +136,28 @@ export function AuthProvider({ children }) {
 
         // Upsert additional fields (name, phone) that the trigger doesn't set
         if (profileCreated) {
-          await supabase.from('profiles').update({
+          const { error: updateError } = await supabase.from('profiles').update({
             full_name: name || data.user.email,
             phone: phone || '',
             updated_at: new Date().toISOString(),
           }).eq('id', data.user.id);
+
+          if (updateError) {
+            console.error('[Auth] Profile update after signup failed:', updateError.message);
+            toast.error('Profil créé, mais mise à jour des informations a échoué.');
+          }
+        } else {
+          console.warn('[Auth] Profile row was never created by DB trigger — attempting update anyway');
+          // Still try — the trigger may have created the row between the loop and here
+          const { error: updateError } = await supabase.from('profiles').update({
+            full_name: name || data.user.email,
+            phone: phone || '',
+            updated_at: new Date().toISOString(),
+          }).eq('id', data.user.id);
+
+          if (updateError) {
+            console.error('[Auth] Profile update after signup failed (no profile row):', updateError.message);
+          }
         }
 
         // Fetch the profile

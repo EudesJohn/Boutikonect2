@@ -28,14 +28,41 @@ if (missingVars.length > 0) {
 
   const stubHandler = {
     get(_, prop) {
-      return () => {
-        throw new Error(
-          `Supabase client not available (missing ${missingVars.join(', ')}). ` +
-            `Called method/property: "${prop}". ${msg}`
-        )
-      }
+      // Return a proxy that itself returns throwing functions on any access
+      // so that chained properties (e.g. supabase.auth.getSession()) all
+      // produce the helpful error message instead of an opaque TypeError.
+      return new Proxy(
+        () => {
+          throw new Error(
+            `Supabase client not available (missing ${missingVars.join(', ')}). ` +
+              `Called method/property: "${prop}". ${msg}`
+          );
+        },
+        {
+          get(_, nestedProp) {
+            return new Proxy(
+              () => {
+                throw new Error(
+                  `Supabase client not available (missing ${missingVars.join(', ')}). ` +
+                    `Called method/property: "${prop}.${String(nestedProp)}". ${msg}`
+                );
+              },
+              {
+                get(_, deeperProp) {
+                  return () => {
+                    throw new Error(
+                      `Supabase client not available (missing ${missingVars.join(', ')}). ` +
+                        `Called method/property: "${prop}.${String(nestedProp)}.${String(deeperProp)}". ${msg}`
+                    );
+                  };
+                },
+              }
+            );
+          },
+        }
+      );
     },
-  }
+  };
 
   supabase = new Proxy({}, stubHandler)
 } else {

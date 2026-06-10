@@ -616,20 +616,34 @@ export function downloadReceipt({
   container.style.zIndex = '-9999';
   document.body.appendChild(container);
 
-  const receiptEl = container.querySelector('.receipt');
-
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
-
-  doc.html(receiptEl, {
-    x: 0,
-    y: 0,
-    width: 190,
-    windowWidth: 460,
-    autoPaging: false,
-    margin: [10, 10, 10, 10],
-    callback: (pdfDoc) => {
-      pdfDoc.save(`quittance-${receiptNum}.pdf`);
+  try {
+    const receiptEl = container.querySelector('.receipt');
+    if (!receiptEl) {
       document.body.removeChild(container);
-    },
-  });
+      console.error('[Receipt] .receipt element not found in template');
+      return;
+    }
+
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+
+    doc.html(receiptEl, {
+      x: 0,
+      y: 0,
+      width: 190,
+      windowWidth: 460,
+      autoPaging: false,
+      margin: [10, 10, 10, 10],
+      callback: (pdfDoc) => {
+        try {
+          pdfDoc.save(`quittance-${receiptNum}.pdf`);
+        } finally {
+          if (container.parentNode) document.body.removeChild(container);
+        }
+      },
+    });
+  } catch (err) {
+    // Cleanup on sync throw
+    if (container.parentNode) document.body.removeChild(container);
+    console.error('[Receipt] PDF generation failed:', err);
+  }
 }

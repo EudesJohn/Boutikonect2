@@ -15,6 +15,68 @@ function handleError(error, context) {
 }
 
 // -------------------------------------------------------------------
+// Shared utilities for pagination and entity queries
+// -------------------------------------------------------------------
+
+/**
+ * Apply offset/limit pagination to a Supabase query.
+ * Every list function should use this instead of manually calling .range().
+ *
+ * @param {object} query - Supabase query builder
+ * @param {number} offset - Number of records to skip
+ * @param {number} limit - Max records to return
+ * @returns {object} Query builder with range applied
+ */
+function paginate(query, offset = 0, limit = 20) {
+  return query.range(offset, offset + limit - 1);
+}
+
+/**
+ * Get aggregate rating for any entity type (product or service).
+ * Replaces the duplicated getProductRating / getServiceRating pattern.
+ *
+ * @param {string} entityType - 'product' or 'service'
+ * @param {string} entityId - Entity UUID
+ * @returns {Promise<{average: number, count: number, distribution: object}>}
+ */
+async function getEntityRating(entityType, entityId) {
+  if (!entityId || !entityType) {
+    return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+  }
+
+  const column = entityType === 'service' ? 'service_id' : 'product_id';
+
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('rating')
+    .eq(column, entityId)
+    .eq('status', 'approved');
+
+  if (error) {
+    console.error(`[DB] getEntityRating (${entityType}):`, error.message);
+    return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+  }
+
+  if (!data || data.length === 0) {
+    return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+  }
+
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let sum = 0;
+
+  data.forEach((r) => {
+    distribution[r.rating] = (distribution[r.rating] || 0) + 1;
+    sum += r.rating;
+  });
+
+  return {
+    average: Math.round((sum / data.length) * 100) / 100,
+    count: data.length,
+    distribution,
+  };
+}
+
+// -------------------------------------------------------------------
 // 1. PROFILE HELPERS
 // -------------------------------------------------------------------
 
@@ -85,7 +147,7 @@ export async function getAllProfiles(options = {}) {
   }
 
   query = query.order('created_at', { ascending: false });
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -118,7 +180,7 @@ export async function searchProfiles(query, options = {}) {
   }
 
   dbQuery = dbQuery.order('rating', { ascending: false });
-  dbQuery = dbQuery.range(offset, offset + limit - 1);
+  dbQuery = paginate(dbQuery, offset, limit);
 
   const { data, error, count } = await dbQuery;
 
@@ -230,7 +292,7 @@ export async function getProducts(filters = {}) {
   query = query.order(field, order);
 
   // Pagination
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -435,7 +497,7 @@ export async function getServices(filters = {}) {
   const field = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
   const order = sortOrder === 'asc' ? { ascending: true } : { ascending: false };
   query = query.order(field, order);
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -623,7 +685,7 @@ export async function getOrders(filters = {}) {
   const field = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
   const order = sortOrder === 'asc' ? { ascending: true } : { ascending: false };
   query = query.order(field, order);
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -653,6 +715,12 @@ export async function createOrder(orderData) {
     throw new Error('createOrder: valid total_amount is required');
   }
 
+  // Validate quantity: must be a positive integer
+  const quantity = orderData.quantity != null ? orderData.quantity : 1;
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error('createOrder: quantity must be a positive integer');
+  }
+
   // Generate unique order number
   const orderNumber = `BK-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
@@ -660,7 +728,6 @@ export async function createOrder(orderData) {
   const itemType = orderData.product_id ? 'product' : orderData.service_id ? 'service' : 'product';
 
   // Calculate unit_price and subtotal if not provided
-  const quantity = orderData.quantity || 1;
   const unitPrice = orderData.unit_price ?? (orderData.total_amount / quantity);
   const subtotal = orderData.subtotal ?? orderData.total_amount;
 
@@ -681,6 +748,19 @@ export async function createOrder(orderData) {
 
   handleError(error, 'createOrder');
   return data;
+}
+
+/**
+ * Delete an order by ID (used for rollback on partial batch failure).
+ * @param {string} id - Order UUID
+ * @returns {Promise<void>}
+ */
+export async function deleteOrder(id) {
+  if (!id) throw new Error('deleteOrder: id is required');
+
+  const { error } = await supabase.from('orders').delete().eq('id', id);
+
+  handleError(error, 'deleteOrder');
 }
 
 /**
@@ -774,7 +854,7 @@ export async function getAllOrders(options = {}) {
   }
 
   query = query.order('created_at', { ascending: false });
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -815,7 +895,7 @@ export async function getProductReviews(productId, options = {}) {
   const allowedSort = ['created_at', 'rating', 'helpful_count'];
   const field = allowedSort.includes(sortBy) ? sortBy : 'created_at';
   query = query.order(field, { ascending: false });
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -852,7 +932,7 @@ export async function getServiceReviews(serviceId, options = {}) {
   const allowedSort = ['created_at', 'rating', 'helpful_count'];
   const field = allowedSort.includes(sortBy) ? sortBy : 'created_at';
   query = query.order(field, { ascending: false });
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -896,76 +976,11 @@ export async function createReview(review) {
  * @returns {Promise<{average: number, count: number, distribution: object}>}
  */
 export async function getProductRating(productId) {
-  if (!productId) {
-    return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
-  }
-
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('rating')
-    .eq('product_id', productId)
-    .eq('status', 'approved');
-
-  if (error) {
-    handleError(error, 'getProductRating');
-  }
-
-  if (!data || data.length === 0) {
-    return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
-  }
-
-  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  let sum = 0;
-
-  data.forEach((r) => {
-    distribution[r.rating] = (distribution[r.rating] || 0) + 1;
-    sum += r.rating;
-  });
-
-  return {
-    average: Math.round((sum / data.length) * 100) / 100,
-    count: data.length,
-    distribution,
-  };
+  return getEntityRating('product', productId);
 }
 
-/**
- * Get aggregate rating for a service.
- * @param {string} serviceId - Service UUID
- * @returns {Promise<{average: number, count: number, distribution: object}>}
- */
 export async function getServiceRating(serviceId) {
-  if (!serviceId) {
-    return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
-  }
-
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('rating')
-    .eq('service_id', serviceId)
-    .eq('status', 'approved');
-
-  if (error) {
-    handleError(error, 'getServiceRating');
-  }
-
-  if (!data || data.length === 0) {
-    return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
-  }
-
-  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  let sum = 0;
-
-  data.forEach((r) => {
-    distribution[r.rating] = (distribution[r.rating] || 0) + 1;
-    sum += r.rating;
-  });
-
-  return {
-    average: Math.round((sum / data.length) * 100) / 100,
-    count: data.length,
-    distribution,
-  };
+  return getEntityRating('service', serviceId);
 }
 
 // -------------------------------------------------------------------
@@ -1035,7 +1050,7 @@ export async function getPendingReports(options = {}) {
   }
 
   query = query.order('created_at', { ascending: false });
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -1396,6 +1411,9 @@ export async function toggleSavedItem(userId, productId, serviceId) {
     throw new Error('toggleSavedItem: either productId or serviceId is required');
   }
 
+  // Determine which item we're toggling
+  const itemId = productId || serviceId;
+
   // Check if already saved
   let query = supabase
     .from('saved_items')
@@ -1418,19 +1436,12 @@ export async function toggleSavedItem(userId, productId, serviceId) {
 
     handleError(error, 'toggleSavedItem (remove)');
 
-    // Decrement saved count
-    if (productId) {
-      const { data: product } = await supabase
-        .from('products')
-        .select('saved_count')
-        .eq('id', productId)
-        .single();
-
-      await supabase
-        .from('products')
-        .update({ saved_count: Math.max(0, (product?.saved_count || 0) - 1) })
-        .eq('id', productId);
-    }
+    // Decrement saved_count atomically via RPC
+    const { error: rpcErr } = await supabase.rpc('increment_saved_count', {
+      p_item_id: itemId,
+      p_amount: -1,
+    });
+    if (rpcErr) console.warn('[DB] Failed to decrement saved_count:', rpcErr.message);
 
     return { saved: false };
   } else {
@@ -1444,19 +1455,12 @@ export async function toggleSavedItem(userId, productId, serviceId) {
 
     handleError(error, 'toggleSavedItem (add)');
 
-    // Increment saved count
-    if (productId) {
-      const { data: product } = await supabase
-        .from('products')
-        .select('saved_count')
-        .eq('id', productId)
-        .single();
-
-      await supabase
-        .from('products')
-        .update({ saved_count: (product?.saved_count || 0) + 1 })
-        .eq('id', productId);
-    }
+    // Increment saved_count atomically via RPC
+    const { error: rpcErr } = await supabase.rpc('increment_saved_count', {
+      p_item_id: itemId,
+      p_amount: 1,
+    });
+    if (rpcErr) console.warn('[DB] Failed to increment saved_count:', rpcErr.message);
 
     return { saved: true };
   }
@@ -1492,7 +1496,7 @@ export async function getSavedItems(userId, options = {}) {
   }
 
   query = query.order('created_at', { ascending: false });
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -1617,7 +1621,7 @@ export async function sendMessage(conversationId, senderId, content, attachments
       if (updateErr) console.warn('[DB] Failed to update conversation:', updateErr.message);
     });
 
-  // 3. Increment unread count (fire & forget)
+  // 3. Increment unread count atomically via RPC (fire & forget)
   supabase
     .from('conversations')
     .select('buyer_id, seller_id')
@@ -1631,21 +1635,7 @@ export async function sendMessage(conversationId, senderId, content, attachments
         p_conversation_id: conversationId,
         p_column: unreadField,
       }).then(({ error: rpcErr }) => {
-        if (rpcErr) {
-          supabase
-            .from('conversations')
-            .select(unreadField)
-            .eq('id', conversationId)
-            .single()
-            .then(({ data: c }) => {
-              const current = c?.[unreadField] || 0;
-              supabase
-                .from('conversations')
-                .update({ [unreadField]: current + 1 })
-                .eq('id', conversationId)
-                .then();
-            });
-        }
+        if (rpcErr) console.warn('[DB] Failed to increment unread count:', rpcErr.message);
       });
     });
 
@@ -1663,12 +1653,13 @@ export async function getMessages(conversationId, options = {}) {
 
   const { limit = 50, offset = 0 } = options;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('messages')
     .select('*, sender:profiles!messages_sender_id_fkey(full_name, avatar_url)')
     .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
-    .range(offset, offset + limit - 1);
+    .order('created_at', { ascending: true });
+
+  const { data, error } = await paginate(query, offset, limit);
 
   handleError(error, 'getMessages');
   return data || [];
@@ -1724,7 +1715,7 @@ export async function getUserConversations(userId, options = {}) {
 
   const { limit = 20, offset = 0 } = options;
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from('conversations')
     .select(
       `
@@ -1738,8 +1729,9 @@ export async function getUserConversations(userId, options = {}) {
     )
     .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     .or(`is_buyer_deleted.eq.false,is_seller_deleted.eq.false`)
-    .order('last_message_at', { ascending: false, nullsFirst: false })
-    .range(offset, offset + limit - 1);
+    .order('last_message_at', { ascending: false, nullsFirst: false });
+
+  const { data, error, count } = await paginate(query, offset, limit);
 
   handleError(error, 'getUserConversations');
   return { data: data || [], count: count || 0 };
@@ -1770,7 +1762,7 @@ export async function getNotifications(userId, options = {}) {
   }
 
   query = query.order('created_at', { ascending: false });
-  query = query.range(offset, offset + limit - 1);
+  query = paginate(query, offset, limit);
 
   const { data, error, count } = await query;
 
@@ -2251,9 +2243,6 @@ export async function fullTextSearch(query, options = {}) {
 
   productQuery = productQuery.order('rating', { ascending: false }).limit(limit);
 
-  const { data: products } = await productQuery;
-  results.products = products || [];
-
   // Search services
   let serviceQuery = supabase
     .from('services')
@@ -2273,7 +2262,9 @@ export async function fullTextSearch(query, options = {}) {
 
   serviceQuery = serviceQuery.order('rating', { ascending: false }).limit(limit);
 
-  const { data: services } = await serviceQuery;
+  // Run both queries in parallel — they are fully independent
+  const [{ data: products }, { data: services }] = await Promise.all([productQuery, serviceQuery]);
+  results.products = products || [];
   results.services = services || [];
 
   return results;

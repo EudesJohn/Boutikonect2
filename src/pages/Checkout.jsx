@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { createOrder } from '../lib/database';
+import { createOrder, deleteOrder } from '../lib/database';
 import toast from 'react-hot-toast';
 
 function formatPrice(amount) {
@@ -66,10 +66,11 @@ export default function Checkout() {
     if (!user) { toast.error('Veuillez vous connecter'); return; }
 
     setSubmitting(true);
+    const createdOrderIds = [];
     try {
       // Create one order per item with fields matching the orders table
       for (const item of cart) {
-        await createOrder({
+        const order = await createOrder({
           product_id: item.id,
           quantity: item.quantity,
           total_amount: item.price * item.quantity,
@@ -81,12 +82,31 @@ export default function Checkout() {
           notes: form.notes.trim(),
           status: 'pending',
         });
+        createdOrderIds.push(order.id);
       }
       clearCart();
       setSuccess(true);
       toast.success('Commande passee avec succes !');
     } catch (err) {
-      toast.error(err.message || 'Erreur lors de la commande');
+      // Rollback: delete any orders already created so we don't leave orphaned
+      // orders in the DB. This is a best-effort cleanup.
+      if (createdOrderIds.length > 0) {
+        console.warn('[Checkout] Partial order failure, rolling back', createdOrderIds.length, 'orders');
+        const results = await Promise.allSettled(
+          createdOrderIds.map((id) => deleteOrder(id))
+        );
+        const failedRollbacks = results.filter((r) => r.status === 'rejected').length;
+        if (failedRollbacks > 0) {
+          console.error('[Checkout] Some orders could not be rolled back:', failedRollbacks);
+          toast.error(
+            `Erreur lors de la commande. ${createdOrderIds.length} commande(s) partielle(s) peuvent exister. Contactez le support.`
+          );
+        } else {
+          toast.error('Commande annulee — aucun article n a ete facture.');
+        }
+      } else {
+        toast.error(err.message || 'Erreur lors de la commande');
+      }
     } finally {
       setSubmitting(false);
     }
